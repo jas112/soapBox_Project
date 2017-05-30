@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html ng-app='app'>
+  <head>
+    <meta charset="utf-8">
+    <title>MEAN Project Week</title>
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+    <script src="angular/angular.js" charset="utf-8"></script>
+    <script src="angular-route/angular-route.js" charset="utf-8"></script>
+    <script src="angular-messages/angular-messages.js"></script>
+    <script src="angular-animate/angular-animate.js"></script>
+    <script src="my_angular/config.js" charset="utf-8"></script>
+    <script src="my_angular/boardFactory.js" charset="utf-8"></script>
+    <script src="my_angular/loginController.js" charset="utf-8"></script>
+    <script src="my_angular/boardController.js" charset="utf-8"></script>
+    <script src="my_angular/Controller2.js" charset="utf-8"></script>
+    <script src="my_angular/Controller3.js" charset="utf-8"></script>
+    <script src="my_angular/Controller5.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="/css/master.css">
+
+    <script>
+    $(document).ready(function(){
+      $("#login").click(function(){
+        console.log('running jquery');
+      if ($('#UserName')[0].outerText==""){
+        $("#loggin").hide()
+      }
+    })
+  });
+    </script>
+
+  </head>
+  <body style="font-family: sans-serif;">
+    <div id="contentWrapper">
+      <div id="navBar">
+        <img id="indexLogo"src="./images/SBText3.png" alt="Soap Box Index Logo">
+        <div id="navLinks">
+          <a id="homeLink" href="#!/">Home</a>
+          <p class="linkSeperator">|</p>
+          <a id="topicsLink" href="#!/topics">Topics</a>
+          <p class="linkSeperator">|</p>
+          <button id="chatButton" type="button" name="button" ng-click="seeChat = !seeChat">Let's Chat!!</button>
+        </div>
+        <div id='loggin' ng-controller="LoginController" ng-hide='loggedin'>
+          <form  name="loginForm">
+            User Email:<input type="text" ng-model="user.email" required minlength="8" placeholder="Enter email Here.">
+            Password:<input type="password" ng-model="user.password" required minlength="8" placeholder="Enter password Here.">
+            <button id='login' ng-disabled="loginForm.$invalid" ng-click="login(user)">Login</button>
+            <a id="registerLink" href="#!/register">Click here to Register</a>
+          </form>
+          <div ng-messages="loginForm.user.email.$error">
+            <p ng-message="required">User name is required.</p>
+            <p ng-message="minlength">User name must be at least 8 characters.</p>
+          </div>
+          <div ng-messages="loginForm.user.password.$error">
+            <p ng-message="required">User password is required.</p>
+            <p ng-message="minlength">User password must be at least 8 characters.</p>
+          </div>
+        </div>
+      </div>
+      <div ng-controller="BoardController">
+        <span id='UserName' style= "display:none" >{{user.name}}</span>
+
+        <div ng-view>
+        <!-- Partial html views here. -->
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+        	var socket = io.connect('http://localhost:8080');
+
+        	// on connection to server, ask for user's name with an anonymous callback
+        	socket.on('connect', function(){
+        		// call the server-side function 'adduser' and send one parameter (value of prompt)
+            console.log($('#UserName'));
+        		socket.emit('adduser', $('#UserName')[0].outerText );
+        	});
+
+        	// listener, whenever the server emits 'updatechat', this updates the chat body
+        	socket.on('updatechat', function (username, data) {
+        		$('#conversation').append('<b>'+username + ':</b> ' + data + '<br>');
+        	});
+
+        	// listener, whenever the server emits 'updaterooms', this updates the room the client is in
+        	socket.on('updaterooms', function(rooms, current_room) {
+        		$('#rooms').empty();
+        		console.log('changing room');
+        		$.each(rooms, function(key, value) {
+        			if(value == current_room){
+        				$('#rooms').append('<div>' + value + '</div>');
+        			}
+        			else {
+        				$('#rooms').append('<div><a href="#" onclick="switchRoom(\''+value+'\')">' + value + '</a></div>');
+        			}
+        		});
+        	});
+
+        	function switchRoom(room){
+        		$("#conversation").empty()  //JQUERY COMMAND TO EMPTY A DIV
+        		socket.emit('switchRoom', room);
+        	}
+
+        	// on load of page
+        	$(function(){
+        		// when the client clicks SEND
+        		$('#datasend').click( function() {
+        			var message = $('#data').val();
+        			$('#data').val('');
+        			// tell server to execute 'sendchat' and send along one parameter
+        			socket.emit('sendchat', message);
+        		});
+
+        		// when the client hits ENTER on their keyboard
+        		$('#data').keypress(function(e) {
+        			if(e.which == 13) {
+        				$(this).blur();
+        				$('#datasend').focus().click();
+        			}
+        		});
+        	});
+        </script>
+        <div id="liveChat" ng-show="seeChat">
+          <div id="liveChatDisplay">
+          	<b id="chatRoomNames">CHAT ROOMS</b>
+          	<div id="rooms"></div>
+          </div>
+          <div id="conversationHolder">
+          	<div id="conversation"></div>
+          	<input id="data" placeholder="Enter Chat Message Here..."/>
+          	<input type="button" id="datasend" value="send" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
